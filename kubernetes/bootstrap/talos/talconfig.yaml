@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/budimanjojo/talhelper/master/pkg/config/schemas/talconfig.json
+---
+# renovate: datasource=docker depName=ghcr.io/siderolabs/installer
+talosVersion: v1.7.4
+# renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+kubernetesVersion: v1.30.1
+
+clusterName: "bitop-talos"
+endpoint: https://10.10.10.10:6443
+clusterPodNets:
+  - "10.69.0.0/16"
+clusterSvcNets:
+  - "10.96.0.0/16"
+additionalApiServerCertSans: &sans
+  - "10.10.10.10"
+  - 127.0.0.1 # KubePrism
+additionalMachineCertSans: *sans
+
+# Disable built-in Flannel to use Cilium
+cniConfig:
+  name: none
+
+nodes:
+  - hostname: "bitop-talos-01"
+    ipAddress: "10.10.10.14"
+    installDisk: "/dev/sdb"
+    talosImageURL: factory.talos.dev/installer/0d75c21eb5afe8010ffc9f2c47f1147f10047dd961742b8198f324ab6526088b
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "7c:83:34:b7:be:11"
+        dhcp: false
+        addresses:
+          - "10.10.10.14/24"
+        routes:
+          - network: 0.0.0.0/0
+            gateway: "10.10.10.1"
+        mtu: 1500
+        vip:
+          ip: "10.10.10.10"
+  - hostname: "bitop-talos-02"
+    ipAddress: "10.10.10.15"
+    installDisk: "/dev/sdb"
+    talosImageURL: factory.talos.dev/installer/0d75c21eb5afe8010ffc9f2c47f1147f10047dd961742b8198f324ab6526088b
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "7c:83:34:b7:fa:c4"
+        dhcp: false
+        addresses:
+          - "10.10.10.15/24"
+        routes:
+          - network: 0.0.0.0/0
+            gateway: "10.10.10.1"
+        mtu: 1500
+  - hostname: "bitop-talos-03"
+    ipAddress: "10.10.10.18"
+    installDisk: "/dev/sdb"
+    talosImageURL: factory.talos.dev/installer/0d75c21eb5afe8010ffc9f2c47f1147f10047dd961742b8198f324ab6526088b
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "7c:83:34:b7:fa:8c"
+        dhcp: false
+        addresses:
+          - "10.10.10.18/24"
+        routes:
+          - network: 0.0.0.0/0
+            gateway: "10.10.10.1"
+        mtu: 1500
+
+# Global patches
+patches:
+  - "@./patches/global/cluster-discovery.yaml"
+  - "@./patches/global/containerd.yaml"
+  - "@./patches/global/disable-search-domain.yaml"
+  - "@./patches/global/hostdns.yaml"
+  - "@./patches/global/kubelet.yaml"
+  - "@./patches/global/openebs-local.yaml"
+  - "@./patches/global/sysctl.yaml"
+
+# Controller patches
+controlPlane:
+  patches:
+    - "@./patches/controller/api-access.yaml"
+    - "@./patches/controller/cluster.yaml"
+    - "@./patches/controller/disable-admission-controller.yaml"
+    - "@./patches/controller/etcd.yaml"
+
